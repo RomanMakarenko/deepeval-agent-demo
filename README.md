@@ -57,18 +57,129 @@ ollama pull nomic-embed-text
 На прикладі вище обидва кейси пройшли обидві метрики: середній бал
 `Task Completion` — `0.85`, а `Tool Correctness` — `1.00`.
 
-## Інші команди
+## Усі тести з `evals/`
+
+Усі команди запускаються з кореня проєкту після запуску Ollama:
+
+```bash
+cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
+```
+
+### `test_TaskCompletion.py`
+
+Перевіряє завершення задачі та правильність виклику інструментів для двох
+запитів: статус замовлення і політика повернення.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TaskCompletion
+```
+
+### `test_TracingComponentsTest.py`
+
+Перевіряє component-level tracing: `TaskCompletionMetric` оцінює весь trace,
+а `ToolCorrectnessMetric` — правильність викликаного tool.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TracingComponentsTest
+```
+
+### `test_rag_agent.py`
+
+Перевіряє RAG-відповіді за метриками `ContextualPrecisionMetric`,
+`ContextualRecallMetric`, `AnswerRelevancyMetric` і `FaithfulnessMetric`.
+Потрібні моделі `qwen2.5:3b` і `nomic-embed-text`.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_rag_agent
+```
+
+### `test_multipleEvalsTest.py`
+
+Запускає для трьох запитів одночасно `PromptAlignmentMetric`,
+`StepEfficiencyMetric` і `AnswerRelevancyMetric`.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_multipleEvalsTest
+```
+
+### `test_customMetricEvals.py`
+
+Перевіряє відповідність фактичної відповіді очікуваній за допомогою `GEval`
+і `SingleTurnParams`.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_customMetricEvals
+```
+
+### `test_chatbot.py`
+
+Запускає багатокрокову розмову з chatbot і перевіряє релевантність ходів,
+утримання знань та повноту розмови.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_chatbot
+```
+
+> `chatbot.py` використовує OpenAI-compatible endpoint Ollama, якщо
+> `DEEPEVAL_JUDGE_PROVIDER=ollama`, тому окремий OpenAI API key для локального
+> режиму не потрібен.
+
+### `test_chatbot_customreqd.py`
+
+Перевіряє багатокрокову розмову за допомогою `ConversationalGEval`: чи вирішив
+чатбот проблему клієнта, чи використовував tools і чи надав точну відповідь.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_chatbot_customreqd
+```
+
+### `test_agent_synthesized.py`
+
+Генерує goldens із `policies.txt`, використовуючи локальні Ollama judge та
+embeddings, а потім перевіряє їх за `BiasMetric`, `ToxicityMetric` і
+`PIILeakageMetric`.
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_agent_synthesized
+```
+
+Для цього тесту обов’язково встанови embedding-модель:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+### Швидкий запуск усіх тестів
+
+```bash
+for test in \
+  test_TaskCompletion \
+  test_TracingComponentsTest \
+  test_rag_agent \
+  test_multipleEvalsTest \
+  test_customMetricEvals \
+  test_chatbot \
+  test_chatbot_customreqd \
+  test_agent_synthesized; do
+  /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m "evals.$test"
+done
+```
+
+> Повний цикл може тривати довго, оскільки кожен тест виконує локальні запити
+> до Ollama. Якщо потрібен лише базовий smoke test, почни з
+> `test_TaskCompletion`.
+
+### Інші команди
 
 ```bash
 # Перевірити агента без eval
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python agent_instrumented.py
 
-# Запустити RAG-тест
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_rag_agent
-
-# Запустити тест компонентного трейсингу
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TracingComponentsTest
+# Перевірити RAG-агента без eval
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python rag_agent.py
 ```
+
+---
 
 ## Конфігурація провайдерів
 
