@@ -8,7 +8,6 @@ import sys
 
 sys.path.insert( 0, os.path.dirname( os.path.dirname( os.path.abspath( __file__ ) ) ) )
 from deepeval.contextvars import get_current_golden
-from deepeval.dataset import Golden
 from deepeval.dataset import Golden, EvaluationDataset
 from deepeval.metrics import ContextualPrecisionMetric, ContextualRecallMetric, AnswerRelevancyMetric, \
     FaithfulnessMetric

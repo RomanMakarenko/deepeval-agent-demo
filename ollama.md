@@ -196,44 +196,44 @@ metric = TaskCompletionMetric(
 
 `ToolCorrectnessMetric` зазвичай не потребує LLM-судді.
 
-## 6. Перевести RAG на локальні embeddings
+## 6. Налаштувати RAG runtime
 
-У `rag_agent.py` зараз використовуються OpenAI embeddings:
+`rag_agent.py` підтримує два провайдери. За замовчуванням використовується
+повністю локальний стек Ollama:
 
-```python
-from langchain_openai import OpenAIEmbeddings
-```
+- `ChatOllama` для генерації відповіді;
+- `OllamaEmbeddings` для пошуку по політиках;
+- без `OPENAI_API_KEY` та `ANTHROPIC_API_KEY`.
 
-і:
-
-```python
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-```
-
-Це також потребує `OPENAI_API_KEY`.
-
-Завантаж локальну embedding-модель:
+Завантаж обидві моделі:
 
 ```bash
+ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 ```
 
-Заміни імпорт:
+У `.env` залиш локальний режим і за потреби зміни назви моделей:
 
-```python
-from langchain_ollama import OllamaEmbeddings
+```env
+RAG_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_CHAT_MODEL=qwen2.5:3b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
-і створення embeddings:
+Щоб повернути оригінальний комерційний стек RAG, встанови:
 
-```python
-embeddings = OllamaEmbeddings(
-    model="nomic-embed-text",
-    base_url="http://localhost:11434",
-)
+```env
+RAG_PROVIDER=cloud
+RAG_CLOUD_CHAT_MODEL=claude-sonnet-4-6
+RAG_CLOUD_EMBEDDING_MODEL=text-embedding-3-small
+ANTHROPIC_API_KEY=...
+OPENAI_API_KEY=...
 ```
 
-Після цього RAG-агент також не використовує OpenAI.
+У режимі `cloud` `rag_agent.py` використовує `ChatAnthropic` і
+`OpenAIEmbeddings`. Цей перемикач незалежний від `DEEPEVAL_JUDGE_PROVIDER`:
+можна запускати локальний RAG з комерційним judge або навпаки.
 
 ## 7. Про `chatbot.py`
 

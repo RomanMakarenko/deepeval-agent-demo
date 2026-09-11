@@ -1,106 +1,121 @@
 # DeepEval Agentic Testing Demo
 
-A minimal teaching repo that shows how to evaluate a LangChain agent with
-DeepEval's component-level evaluation: **Task Completion** and **Tool
-Correctness** metrics, applied to a cross-vendor setup (Claude as the
-agent, GPT-4o as the judge).
+Навчальний проєкт для оцінювання LangChain-агентів за допомогою DeepEval.
+За замовчуванням judge-модель і RAG runtime працюють локально через Ollama;
+комерційні провайдери можна ввімкнути конфігурацією.
 
----
+## Що демонструє проєкт
 
-## Files in this repo
+- інструментальний LangChain-агент із `TaskCompletionMetric` і
+  `ToolCorrectnessMetric`;
+- RAG-агент із пошуком по політиках та оцінюванням
+  `FaithfulnessMetric`, `ContextualPrecisionMetric` і
+  `ContextualRecallMetric`;
+- DeepEval-трейсинг через `CallbackHandler`, `@observe` і
+  `update_current_trace`;
+- перемикання між локальним Ollama та хмарним RAG runtime.
 
-| File | Who writes it (in real life) | What it does |
-|---|---|---|
-| `agent_plain.py` | Developer (before evals exist) | A normal LangChain + Claude agent. No DeepEval code anywhere. |
-| `agent_instrumented.py` | Developer (after QA asks) | The **same** agent, with **4 lines added** to make it observable to DeepEval. |
-| `test_agent.py` | QA / Tester (you) | Imports the agent, defines goldens, runs metrics. |
-
----
-
-## The teaching point
-
-The diff between `agent_plain.py` and `agent_instrumented.py` is **4 lines**.
-That's the entire ask QA makes of dev:
-
-1. `from deepeval.integrations.langchain import CallbackHandler`
-2. `deepeval_callback = CallbackHandler()`
-3. `config={"callbacks": [deepeval_callback]}` on `.invoke()`
-4. `@observe(name="support_agent")` on the outer wrapper function
-
-Everything else stays exactly the same.
-
-Show students both files side by side. Once they see the diff is tiny,
-they stop being intimidated by component-level evaluation.
-
----
-
-## How to run
+## Встановлення
 
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
-
-# 2. Configure the DeepEval judge (Ollama is the default)
-# Ensure Ollama is running and qwen2.5:3b is available.
-export DEEPEVAL_JUDGE_PROVIDER=ollama
-export DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
-
-# To use OpenAI later instead:
-# export DEEPEVAL_JUDGE_PROVIDER=openai
-# export DEEPEVAL_JUDGE_MODEL=gpt-4o
-# export OPENAI_API_KEY=sk-...
-
-# 3. (Optional but recommended) log in to Confident AI to see traces in a UI
-deepeval login
-
-# 4. Sanity check: run the agent on its own
-python agent_instrumented.py
-
-# 5. Run the evaluation
-python test_agent.py
+cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m pip install -r requirements.txt
+cp .env.example .env
 ```
 
----
+## Запуск локального тесту
 
-## What you'll see when you run `test_agent.py`
+### Етап 1 — запустити Ollama
 
-DeepEval will:
-1. Invoke `support_agent(...)` for each golden input
-2. Capture the full trace (LangChain LLM call + tool call + final message)
-3. Apply **Task Completion** to the whole trace
-4. Apply **Tool Correctness** to the tool-call span
-5. Print scores + reasons per golden
+У першому терміналі запусти сервер і залиш його працювати:
 
-The third golden is intentionally borderline — watch for the interesting
-case where Task Completion may pass but Tool Correctness fails (or vice
-versa). That's the moment that makes component-level evaluation click.
+```bash
+ollama serve
+```
 
----
+У другому терміналі завантаж моделі, необхідні для judge та RAG:
 
-## Suggested lesson flow
+```bash
+ollama pull qwen2.5:3b
+ollama pull nomic-embed-text
+```
 
-| Minute | Activity |
+### Етап 2 — запустити Task Completion test
+
+Команду потрібно виконувати з кореня проєкту:
+
+```bash
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TaskCompletion
+```
+
+Тест запускає два кейси та перевіряє їх метриками `Task Completion` і
+`Tool Correctness`. Успішний запуск покаже окремий результат для кожного кейсу
+та aggregate metrics.
+
+![Результати DeepEval Task Completion](<Screenshot 2026-09-11 at 23.07.55.png>)
+
+На прикладі вище обидва кейси пройшли обидві метрики: середній бал
+`Task Completion` — `0.85`, а `Tool Correctness` — `1.00`.
+
+## Інші команди
+
+```bash
+# Перевірити агента без eval
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python agent_instrumented.py
+
+# Запустити RAG-тест
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_rag_agent
+
+# Запустити тест компонентного трейсингу
+/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TracingComponentsTest
+```
+
+## Конфігурація провайдерів
+
+`.env.example` містить локальні значення за замовчуванням:
+
+```env
+DEEPEVAL_JUDGE_PROVIDER=ollama
+DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
+
+RAG_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_CHAT_MODEL=qwen2.5:3b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+```
+
+Для RAG можна окремо ввімкнути хмарний runtime:
+
+```env
+RAG_PROVIDER=cloud
+RAG_CLOUD_CHAT_MODEL=claude-sonnet-4-6
+RAG_CLOUD_EMBEDDING_MODEL=text-embedding-3-small
+ANTHROPIC_API_KEY=...
+OPENAI_API_KEY=...
+```
+
+Для хмарного DeepEval judge замість Ollama:
+
+```env
+DEEPEVAL_JUDGE_PROVIDER=openai
+DEEPEVAL_JUDGE_MODEL=gpt-4o
+OPENAI_API_KEY=...
+```
+
+`RAG_PROVIDER` і `DEEPEVAL_JUDGE_PROVIDER` незалежні: наприклад, RAG може
+працювати локально через Ollama, а judge — через OpenAI.
+
+## Основні файли
+
+| Файл | Призначення |
 |---|---|
-| 0–5 | Show `agent_plain.py`. Ask: "How would you test this?" |
-| 5–10 | Show `agent_instrumented.py` side-by-side. Walk through the 4-line diff. |
-| 10–25 | Walk through `test_agent.py` line by line. |
-| 25–35 | Run it live. Discuss the borderline result. |
-| 35+ | Open discussion: what other metrics? what other goldens? |
+| `agent_plain.py` | Базовий агент без DeepEval-інструментації. |
+| `agent_instrumented.py` | Агент із callback-трейсингом DeepEval. |
+| `rag_agent.py` | RAG-агент із локальним Ollama runtime за замовчуванням. |
+| `local_models.py` | Спільна конфігурація judge та runtime-моделей. |
+| `evals/test_TaskCompletion.py` | Task Completion і Tool Correctness. |
+| `evals/test_rag_agent.py` | Метрики якості RAG-відповідей. |
+| `ollama.md` | Розширена інструкція з локального запуску Ollama. |
 
----
-
-## Reality checks before teaching
-
-DeepEval's integration surface evolves. Before your first session, run the
-demo end-to-end once and confirm:
-
-- `ChatAnthropic(model="claude-sonnet-4-5")` — if this errors, swap to the
-  latest Claude model from the Anthropic console.
-- `from deepeval.integrations.langchain import CallbackHandler` — works as
-  written in recent DeepEval versions; older versions may use a different
-  import path.
-- `Golden(expected_tools=[ToolCall(name="...")])` — accepted in current
-  DeepEval; in older versions you may need to pass via `additional_metadata`
-  and unpack via `update_current_span`.
-
-Fix any version issue once, then it's solid for the whole course.
+`deepeval login` необов’язковий. Він потрібен лише для надсилання трейсів у
+Confident AI dashboard.

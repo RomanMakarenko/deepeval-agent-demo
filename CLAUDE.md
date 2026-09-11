@@ -13,7 +13,17 @@ Create a `.env` file (already gitignored) with local judge defaults:
 DEEPEVAL_JUDGE_PROVIDER=ollama
 DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
 OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_CHAT_MODEL=qwen2.5:3b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+RAG_PROVIDER=ollama  # ollama (default) or cloud
+# RAG_PROVIDER=cloud
+# RAG_CLOUD_CHAT_MODEL=claude-sonnet-4-6
+# RAG_CLOUD_EMBEDDING_MODEL=text-embedding-3-small
 CONFIDENT_API_KEY=confident_us_...  # optional: stream traces to Confident AI dashboard
+
+# For local RAG, pull both models first:
+# ollama pull qwen2.5:3b
+# ollama pull nomic-embed-text
 ```
 
 To use an OpenAI judge later, set `DEEPEVAL_JUDGE_PROVIDER=openai`,
@@ -57,7 +67,7 @@ python test_safety.py                 # Bias + Toxicity + PIILeakage
 
 | File | Purpose |
 |---|---|
-| `rag_agent.py` | Customer-support agent backed by a 9-document in-memory vector store (`InMemoryVectorStore` + OpenAI embeddings). One tool: `search_policies`. Retrieved chunks are forwarded to the DeepEval trace as `retrieval_context`. |
+| `rag_agent.py` | Customer-support agent backed by a 9-document in-memory vector store (`InMemoryVectorStore` + Ollama embeddings by default). Set `RAG_PROVIDER=cloud` for Anthropic chat + OpenAI embeddings. One tool: `search_policies`. Retrieved chunks are forwarded to the DeepEval trace as `retrieval_context`. |
 | `test_rag_agent.py` | `AnswerRelevancyMetric`, `FaithfulnessMetric`, `ContextualPrecisionMetric`, `ContextualRecallMetric`. Goldens carry `expected_output` (required by Precision/Recall). |
 
 ### Phase 3 — multi-turn chatbot

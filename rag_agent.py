@@ -4,31 +4,47 @@ rag_agent.py
 A customer-support agent that answers questions by retrieving from a small
 in-memory policy knowledge base instead of calling fixed lookup functions.
 
+Ollama is the default runtime provider. Set ``RAG_PROVIDER=cloud`` to use the
+original Anthropic chat model and OpenAI embeddings instead.
+
 Architecture:
-  - Knowledge base: 9 policy documents stored as embeddings (OpenAI)
+  - Knowledge base: 9 policy documents stored as provider-specific embeddings
   - Vector store: langchain_core InMemoryVectorStore (no external DB needed)
   - Tool: search_policies(query) — semantic search, returns top-3 chunks
-  - LLM: GPT-4o (same as agent_plain.py, just with retrieval instead of hard-coded data)
-  - Instrumentation: DeepEval CallbackHandler + @observe, same 4-line pattern
-
-What's new vs agent_instrumented.py:
-  - search_policies tool replaces get_order_status / get_refund_policy
-  - Retrieved chunks are captured into the DeepEval trace as retrieval_context
-    so that RAG metrics (Faithfulness, Contextual Precision/Recall) can run
+  - LLM: ChatOllama by default, or ChatAnthropic with ``RAG_PROVIDER=cloud``
+  - Instrumentation: DeepEval CallbackHandler + retrieval-context tracing
 """
+
+from __future__ import annotations
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from langchain.agents import create_agent
+from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_anthropic import ChatAnthropic
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from langchain.agents import create_agent
 
 from deepeval.integrations.langchain import CallbackHandler
 from deepeval.tracing.context import update_current_trace
+from local_models import rag_runtime_config
+
+
+RAG_PROVIDER = rag_runtime_config["provider"]
+RAG_CHAT_MODEL = (
+    rag_runtime_config["chat_model"]
+    if RAG_PROVIDER == "ollama"
+    else rag_runtime_config["cloud_chat_model"]
+)
+RAG_EMBEDDING_MODEL = (
+    rag_runtime_config["embedding_model"]
+    if RAG_PROVIDER == "ollama"
+    else rag_runtime_config["cloud_embedding_model"]
+)
+RAG_BASE_URL = rag_runtime_config["base_url"] if RAG_PROVIDER == "ollama" else None
 
 
 # ---------------------------------------------------------------------------
@@ -75,17 +91,29 @@ POLICY_DOCS = [
 
 
 # ---------------------------------------------------------------------------
-# Build the vector store once at import time.
+# Build provider-specific components once at import time.
 # ---------------------------------------------------------------------------
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+if RAG_PROVIDER == "ollama":
+    embeddings = OllamaEmbeddings(
+        model=RAG_EMBEDDING_MODEL,
+        base_url=RAG_BASE_URL,
+    )
+    llm = ChatOllama(
+        model=RAG_CHAT_MODEL,
+        temperature=0,
+        base_url=RAG_BASE_URL,
+    )
+else:
+    embeddings = OpenAIEmbeddings(model=RAG_EMBEDDING_MODEL)
+    llm = ChatAnthropic(model=RAG_CHAT_MODEL, temperature=0)
+
 vector_store = InMemoryVectorStore(embedding=embeddings)
 vector_store.add_texts(POLICY_DOCS)
 
 
 # ---------------------------------------------------------------------------
 # Retrieval tool — returns top-3 policy chunks for a query.
-# Also stashes the retrieved text in a module-level list so the @observe
-# wrapper can forward it to the DeepEval trace as retrieval_context.
+# Also stashes retrieved text so the wrapper can forward it to DeepEval.
 # ---------------------------------------------------------------------------
 _last_retrieved: list[str] = []
 
@@ -103,8 +131,6 @@ def search_policies(query: str) -> str:
 # ---------------------------------------------------------------------------
 # Agent
 # ---------------------------------------------------------------------------
-llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0)
-
 agent = create_agent(
     model=llm,
     tools=[search_policies],
@@ -133,7 +159,6 @@ def rag_support_agent(user_input: str) -> str:
     )
     reply = result["messages"][-1].content
 
-    # Set clean reply string and retrieved chunks on the trace.
     update_current_trace(
         output=reply,
         retrieval_context=_last_retrieved if _last_retrieved else None,

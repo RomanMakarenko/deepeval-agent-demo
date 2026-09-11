@@ -39,6 +39,56 @@ def get_judge_config(
     }
 
 
+def get_ollama_runtime_config(
+    chat_model: str | None = None,
+    embedding_model: str | None = None,
+) -> dict[str, str]:
+    """Return local Ollama settings for application runtimes."""
+    return {
+        "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        "chat_model": chat_model or os.getenv(
+            "OLLAMA_CHAT_MODEL", "qwen2.5:3b"
+        ),
+        "embedding_model": embedding_model or os.getenv(
+            "OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"
+        ),
+    }
+
+
+def get_rag_runtime_config(
+    provider: str | None = None,
+    chat_model: str | None = None,
+    embedding_model: str | None = None,
+) -> dict[str, str]:
+    """Return provider and model settings for the RAG runtime.
+
+    Ollama is the default. ``RAG_PROVIDER=cloud`` keeps the original
+    Anthropic chat model and OpenAI embedding model available.
+    """
+    selected_provider = (
+        provider or os.getenv("RAG_PROVIDER", "ollama")
+    ).strip().lower()
+    if selected_provider not in {"ollama", "cloud"}:
+        raise ValueError(
+            f"Unsupported RAG_PROVIDER={selected_provider!r}. "
+            "Choose 'ollama' or 'cloud'."
+        )
+
+    ollama_config = get_ollama_runtime_config(chat_model, embedding_model)
+    return {
+        "provider": selected_provider,
+        "base_url": ollama_config["base_url"],
+        "chat_model": ollama_config["chat_model"],
+        "embedding_model": ollama_config["embedding_model"],
+        "cloud_chat_model": os.getenv(
+            "RAG_CLOUD_CHAT_MODEL", "claude-sonnet-4-6"
+        ),
+        "cloud_embedding_model": os.getenv(
+            "RAG_CLOUD_EMBEDDING_MODEL", "text-embedding-3-small"
+        ),
+    }
+
+
 def get_judge_model(
     provider: str | None = None,
     model_name: str | None = None,
@@ -69,3 +119,5 @@ def get_judge_model(
 # Stable imports used by evaluation files and runtime clients.
 judge_config = get_judge_config()
 judge_model = get_judge_model()
+ollama_runtime_config = get_ollama_runtime_config()
+rag_runtime_config = get_rag_runtime_config()
