@@ -23,7 +23,7 @@ cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
 cp .env.example .env
 ```
 
-## Запуск локального тесту
+## Запуск локальних тестів
 
 ### Етап 1 — запустити Ollama
 
@@ -33,48 +33,31 @@ cp .env.example .env
 ollama serve
 ```
 
-У другому терміналі завантаж моделі, необхідні для judge та RAG:
+У другому терміналі завантаж моделі:
 
 ```bash
 ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 ```
 
-### Етап 2 — запустити Task Completion test
+### Етап 2 — запуск тестів із `evals/`
 
-Команду потрібно виконувати з кореня проєкту:
-
-```bash
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TaskCompletion
-```
-
-Тест запускає два кейси та перевіряє їх метриками `Task Completion` і
-`Tool Correctness`. Успішний запуск покаже окремий результат для кожного кейсу
-та aggregate metrics.
-
-![Результати DeepEval Task Completion](<Screenshot 2026-09-11 at 23.07.55.png>)
-
-На прикладі вище обидва кейси пройшли обидві метрики: середній бал
-`Task Completion` — `0.85`, а `Tool Correctness` — `1.00`.
-
-## Усі тести з `evals/`
-
-Усі команди запускаються з кореня проєкту після запуску Ollama:
+Усі команди нижче запускаються з кореня проєкту:
 
 ```bash
 cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
 ```
 
-### `test_TaskCompletion.py`
+#### `test_TaskCompletion.py`
 
-Перевіряє завершення задачі та правильність виклику інструментів для двох
-запитів: статус замовлення і політика повернення.
+Перевіряє завершення задачі та правильність виклику інструментів для запитів про
+статус замовлення і політику повернення.
 
 ```bash
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TaskCompletion
 ```
 
-### `test_TracingComponentsTest.py`
+#### `test_TracingComponentsTest.py`
 
 Перевіряє component-level tracing: `TaskCompletionMetric` оцінює весь trace,
 а `ToolCorrectnessMetric` — правильність викликаного tool.
@@ -83,48 +66,47 @@ cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_TracingComponentsTest
 ```
 
-### `test_rag_agent.py`
+#### `test_rag_agent.py`
 
-Перевіряє RAG-відповіді за метриками `ContextualPrecisionMetric`,
+Перевіряє RAG-відповіді за допомогою `ContextualPrecisionMetric`,
 `ContextualRecallMetric`, `AnswerRelevancyMetric` і `FaithfulnessMetric`.
-Потрібні моделі `qwen2.5:3b` і `nomic-embed-text`.
+Потрібні `qwen2.5:3b` та `nomic-embed-text`.
 
 ```bash
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_rag_agent
 ```
 
-### `test_multipleEvalsTest.py`
+#### `test_multipleEvalsTest.py`
 
-Запускає для трьох запитів одночасно `PromptAlignmentMetric`,
-`StepEfficiencyMetric` і `AnswerRelevancyMetric`.
+Запускає для трьох запитів `PromptAlignmentMetric`, `StepEfficiencyMetric` і
+`AnswerRelevancyMetric`.
 
 ```bash
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_multipleEvalsTest
 ```
 
-### `test_customMetricEvals.py`
+#### `test_customMetricEvals.py`
 
-Перевіряє відповідність фактичної відповіді очікуваній за допомогою `GEval`
-і `SingleTurnParams`.
+Перевіряє відповідність фактичної відповіді очікуваній за допомогою `GEval` і
+`SingleTurnParams`.
 
 ```bash
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_customMetricEvals
 ```
 
-### `test_chatbot.py`
+#### `test_chatbot.py`
 
-Запускає багатокрокову розмову з chatbot і перевіряє релевантність ходів,
-утримання знань та повноту розмови.
+Запускає багатокрокову розмову та перевіряє релевантність ходів, утримання
+знань і повноту розмови.
 
 ```bash
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_chatbot
 ```
 
-> `chatbot.py` використовує OpenAI-compatible endpoint Ollama, якщо
-> `DEEPEVAL_JUDGE_PROVIDER=ollama`, тому окремий OpenAI API key для локального
-> режиму не потрібен.
+У локальному режимі `chatbot.py` використовує OpenAI-compatible endpoint Ollama,
+тому окремий OpenAI API key не потрібен.
 
-### `test_chatbot_customreqd.py`
+#### `test_chatbot_customreqd.py`
 
 Перевіряє багатокрокову розмову за допомогою `ConversationalGEval`: чи вирішив
 чатбот проблему клієнта, чи використовував tools і чи надав точну відповідь.
@@ -133,21 +115,33 @@ cd /Users/romanmakarenko/Documents/Python/deepeval-agent-demo
 /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_chatbot_customreqd
 ```
 
-### `test_agent_synthesized.py`
+#### `test_agent_synthesized.py`
 
 Генерує goldens із `policies.txt`, використовуючи локальні Ollama judge та
 embeddings, а потім перевіряє їх за `BiasMetric`, `ToxicityMetric` і
 `PIILeakageMetric`.
 
+> **Важливо:** для `test_agent_synthesized.py` потрібна ще embedding-модель.
+> Якщо вона ще не встановлена, запусти:
+>
+> ```bash
+> ollama pull nomic-embed-text
+> ```
+>
+> Після завершення завантаження повтори запуск тесту:
+>
+> ```bash
+> /Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_agent_synthesized
+> ```
+
+Перевірити встановлені моделі можна так:
+
 ```bash
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python -m evals.test_agent_synthesized
+ollama list
 ```
 
-Для цього тесту обов’язково встанови embedding-модель:
-
-```bash
-ollama pull nomic-embed-text
-```
+У списку мають бути `qwen2.5:3b` і `nomic-embed-text`. Якщо Ollama не
+запущена, спочатку виконай `ollama serve` в іншому терміналі.
 
 ### Швидкий запуск усіх тестів
 
@@ -165,21 +159,8 @@ for test in \
 done
 ```
 
-> Повний цикл може тривати довго, оскільки кожен тест виконує локальні запити
-> до Ollama. Якщо потрібен лише базовий smoke test, почни з
-> `test_TaskCompletion`.
-
-### Інші команди
-
-```bash
-# Перевірити агента без eval
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python agent_instrumented.py
-
-# Перевірити RAG-агента без eval
-/Users/romanmakarenko/Documents/Python/deepeval-agent-demo/.venv/bin/python rag_agent.py
-```
-
----
+Повний цикл може тривати довго, оскільки кожен тест виконує локальні запити до
+Ollama. Якщо потрібен лише базовий smoke test, почни з `test_TaskCompletion`.
 
 ## Конфігурація провайдерів
 
@@ -224,8 +205,7 @@ OPENAI_API_KEY=...
 | `agent_instrumented.py` | Агент із callback-трейсингом DeepEval. |
 | `rag_agent.py` | RAG-агент із локальним Ollama runtime за замовчуванням. |
 | `local_models.py` | Спільна конфігурація judge та runtime-моделей. |
-| `evals/test_TaskCompletion.py` | Task Completion і Tool Correctness. |
-| `evals/test_rag_agent.py` | Метрики якості RAG-відповідей. |
+| `evals/` | Вісім тестів DeepEval, описаних вище. |
 | `ollama.md` | Розширена інструкція з локального запуску Ollama. |
 
 `deepeval login` необов’язковий. Він потрібен лише для надсилання трейсів у
