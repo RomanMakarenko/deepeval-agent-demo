@@ -14,11 +14,15 @@ It uses Claude to decide which tool to call and to compose the answer.
 
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
-# from langchain_anthropic import ChatAnthropic
 
 load_dotenv()
 from langchain_core.tools import tool
 from langchain.agents import create_agent
+from local_models import ollama_runtime_config
+
+
+OLLAMA_BASE_URL = ollama_runtime_config["base_url"]
+OLLAMA_CHAT_MODEL = ollama_runtime_config["chat_model"]
 
 
 # ---------------------------------------------------------------------------
@@ -59,13 +63,13 @@ def get_refund_policy(category: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# The agent — a LangGraph ReAct agent powered by Claude.
+# The agent — a LangGraph ReAct agent powered by local Ollama.
 # ---------------------------------------------------------------------------
-# llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0)
 llm = ChatOllama(
-      model="qwen2.5:3b",
-      temperature=0,
-  )
+    model=OLLAMA_CHAT_MODEL,
+    temperature=0,
+    base_url=OLLAMA_BASE_URL,
+)
 
 agent = create_agent(
     model=llm,

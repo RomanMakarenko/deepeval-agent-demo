@@ -35,6 +35,11 @@ from langchain.agents import create_agent
 # --- (1) NEW: import DeepEval tracing primitives --------------------------
 from deepeval.integrations.langchain import CallbackHandler
 from deepeval.tracing.context import update_current_trace
+from local_models import ollama_runtime_config
+
+
+OLLAMA_BASE_URL = ollama_runtime_config["base_url"]
+OLLAMA_CHAT_MODEL = ollama_runtime_config["chat_model"]
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +83,9 @@ def get_refund_policy(category: str) -> str:
 # Same agent as agent_plain.py.
 # ---------------------------------------------------------------------------
 llm = ChatOllama(
-    model="qwen2.5:3b",
+    model=OLLAMA_CHAT_MODEL,
     temperature=0,
+    base_url=OLLAMA_BASE_URL,
 )
 
 # Load one extra tool from the MCP server at startup and merge it in.

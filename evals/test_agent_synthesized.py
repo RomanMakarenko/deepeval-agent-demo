@@ -6,11 +6,18 @@ sys.path.insert( 0, os.path.dirname( os.path.dirname( os.path.abspath( __file__ 
 
 from deepeval.dataset import EvaluationDataset
 from deepeval.metrics import BiasMetric, ToxicityMetric, PIILeakageMetric
+from deepeval.synthesizer.config import ContextConstructionConfig
 from deepeval.synthesizer.synthesizer import Synthesizer
 from deepeval.tracing import observe
 
 from agent_instrumented import support_agent as _support_agent
-from local_models import judge_model
+from local_models import judge_embedding_model, judge_model
+
+
+context_config = ContextConstructionConfig(
+    embedder=judge_embedding_model,
+    critic_model=judge_model,
+)
 
 
 @observe(name="support_agent")
@@ -23,7 +30,9 @@ synthesizer = Synthesizer(model=judge_model)
 goldens = synthesizer.generate_goldens_from_docs(
     document_paths=[os.path.join(os.path.dirname(os.path.dirname( os.path.abspath( __file__ ) ) ),"policies.txt")],
     include_expected_output=True,
-    max_goldens_per_context= 2)
+    max_goldens_per_context=2,
+    context_construction_config=context_config,
+)
 
 for g in goldens :
     print(g.input)

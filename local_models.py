@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 
 from deepeval.models import GPTModel, OllamaModel
+from deepeval.models import OllamaEmbeddingModel
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -89,6 +90,34 @@ def get_rag_runtime_config(
     }
 
 
+def get_judge_embedding_model(
+    provider: str | None = None,
+    model_name: str | None = None,
+):
+    """Build the configured DeepEval embedding model."""
+    selected_provider = (
+        provider or os.getenv("DEEPEVAL_JUDGE_PROVIDER", "ollama")
+    ).strip().lower()
+    if selected_provider == "ollama":
+        runtime = get_ollama_runtime_config(embedding_model=model_name)
+        return OllamaEmbeddingModel(
+            model=runtime["embedding_model"],
+            base_url=runtime["base_url"],
+        )
+    if selected_provider == "openai":
+        from deepeval.models import OpenAIEmbeddingModel
+
+        return OpenAIEmbeddingModel(
+            model=model_name or os.getenv(
+                "DEEPEVAL_JUDGE_EMBEDDING_MODEL", "text-embedding-3-small"
+            )
+        )
+    raise ValueError(
+        f"Unsupported DEEPEVAL_JUDGE_PROVIDER={selected_provider!r}. "
+        "Choose 'ollama' or 'openai'."
+    )
+
+
 def get_judge_model(
     provider: str | None = None,
     model_name: str | None = None,
@@ -121,3 +150,4 @@ judge_config = get_judge_config()
 judge_model = get_judge_model()
 ollama_runtime_config = get_ollama_runtime_config()
 rag_runtime_config = get_rag_runtime_config()
+judge_embedding_model = get_judge_embedding_model()
