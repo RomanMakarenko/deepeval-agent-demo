@@ -15,6 +15,7 @@ from deepeval.metrics import ContextualPrecisionMetric, ContextualRecallMetric, 
 from deepeval.tracing import observe, update_current_trace
 
 from rag_agent import rag_support_agent as _rag_support_agent
+from local_models import judge_model
 
 @observe(name="rag_support_agent" )
 def rag_support_agent(user_input: str) -> str:
@@ -44,25 +45,25 @@ dataset = EvaluationDataset(goldens = [
 
 precisionMetric = ContextualPrecisionMetric(
     threshold=0.7,
-    model = "gpt-4o"
+    model=judge_model
 
 )
 recallMetric = ContextualRecallMetric(
     threshold=0.7,
-    model="gpt-4o",
+    model=judge_model,
     include_reason=True
 )
 
 relevancyMetric = AnswerRelevancyMetric(
     threshold=0.7,
-    model="gpt-4o",
+    model=judge_model,
     include_reason=True
 )
 
 
 faithfulMetric = FaithfulnessMetric(
     threshold=0.7,
-    model="gpt-4o",
+    model=judge_model,
     include_reason=True
 )
 

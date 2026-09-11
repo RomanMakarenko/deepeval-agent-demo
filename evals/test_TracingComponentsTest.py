@@ -9,6 +9,7 @@ from deepeval.test_case import ToolCall
 from deepeval.tracing import observe, update_current_trace
 
 from agent_instrumented import support_agent as _support_agent
+from local_models import judge_model
 
 #Trace have expected values and actual values
 @observe(name="support_agent")
@@ -25,9 +26,9 @@ def support_agent(user_input: str) -> str:
 
 
 
-task_completion = TaskCompletionMetric(threshold=0.7,model="gpt-4o")
+task_completion = TaskCompletionMetric(threshold=0.7, model=judge_model)
 
-tool_correctness = ToolCorrectnessMetric()
+tool_correctness = ToolCorrectnessMetric(model=judge_model)
 
 dataSet = EvaluationDataset(goldens= [
     Golden(input = "Where is my order ORD-1042?",

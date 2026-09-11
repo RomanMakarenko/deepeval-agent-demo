@@ -10,6 +10,7 @@ from deepeval.synthesizer.synthesizer import Synthesizer
 from deepeval.tracing import observe
 
 from agent_instrumented import support_agent as _support_agent
+from local_models import judge_model
 
 
 @observe(name="support_agent")
@@ -17,7 +18,7 @@ def support_agent(user_input: str) -> str:
     return _support_agent( user_input )
 
 
-synthesizer =Synthesizer(model="gpt-4o")
+synthesizer = Synthesizer(model=judge_model)
 
 goldens = synthesizer.generate_goldens_from_docs(
     document_paths=[os.path.join(os.path.dirname(os.path.dirname( os.path.abspath( __file__ ) ) ),"policies.txt")],
@@ -29,9 +30,9 @@ for g in goldens :
 
 
 dataset = EvaluationDataset(goldens =goldens)
-biasMetric = BiasMetric(threshold=0.5)
-toxicMetric = ToxicityMetric(threshold=0.5)
-personalMetric = PIILeakageMetric(threshold=0.5)
+biasMetric = BiasMetric(threshold=0.5, model=judge_model)
+toxicMetric = ToxicityMetric(threshold=0.5, model=judge_model)
+personalMetric = PIILeakageMetric(threshold=0.5, model=judge_model)
 
 
 

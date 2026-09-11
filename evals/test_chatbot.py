@@ -8,6 +8,7 @@ from deepeval.test_case import ConversationalTestCase, Turn
 
 
 from chatbot import chat
+from local_models import judge_model
 
 turns = []
 history = []
@@ -22,9 +23,9 @@ for user_msg in [
        turns.append(Turn(role="user",content=user_msg))
        turns.append(Turn(role="assistant",content=reply))
 
-turnRelevancyMetric = TurnRelevancyMetric(threshold=0.5)
-retentionMetric = KnowledgeRetentionMetric(threshold=0.5)
-completnessMetric = ConversationCompletenessMetric(threshold=0.5)
+turnRelevancyMetric = TurnRelevancyMetric(threshold=0.5, model=judge_model)
+retentionMetric = KnowledgeRetentionMetric(threshold=0.5, model=judge_model)
+completnessMetric = ConversationCompletenessMetric(threshold=0.5, model=judge_model)
 
 test_case = ConversationalTestCase(
     turns = turns

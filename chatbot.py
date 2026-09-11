@@ -1,7 +1,7 @@
 """
 chatbot.py
 ==========
-A multi-turn customer-support chatbot with tool calling, built with GPT-4o.
+A multi-turn customer-support chatbot with tool calling, using the configured judge model by default.
 
 Tools available (same data as agent_plain.py):
   - get_order_status(order_id)   → real-time shipping status from in-memory DB
@@ -27,13 +27,24 @@ How to run standalone:
 """
 
 from dotenv import load_dotenv
+from local_models import judge_config, judge_model
 
 load_dotenv()
 
 import json
+import os
 from openai import OpenAI
 
-client = OpenAI()
+
+# Keep the OpenAI client, but route it to the same provider/model configured
+# for the DeepEval judge. Ollama exposes an OpenAI-compatible API endpoint.
+if judge_config["provider"] == "ollama":
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY") or "ollama",
+        base_url=f'{judge_config["ollama_base_url"]}/v1',
+    )
+else:
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ---------------------------------------------------------------------------
 # In-memory data (same as agent_plain.py)
@@ -149,7 +160,7 @@ def chat(
 
     while True:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=judge_config["model"],
             messages=[{"role": "system", "content": SYSTEM_PROMPT}] + history,
             tools=TOOLS,
             tool_choice="auto",

@@ -19,12 +19,13 @@ without ever touching this file again.
 
 import asyncio
 import os
+import sys
 
 import nest_asyncio
 nest_asyncio.apply()
 
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
+from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 load_dotenv()
@@ -76,13 +77,16 @@ def get_refund_policy(category: str) -> str:
 # ---------------------------------------------------------------------------
 # Same agent as agent_plain.py.
 # ---------------------------------------------------------------------------
-llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0)
+llm = ChatOllama(
+    model="qwen2.5:3b",
+    temperature=0,
+)
 
 # Load one extra tool from the MCP server at startup and merge it in.
 _mcp_tools = asyncio.run(
     MultiServerMCPClient({
         "shopease": {
-            "command": "python",
+            "command": sys.executable,
             "args": [os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server.py")],
             "transport": "stdio",
         }

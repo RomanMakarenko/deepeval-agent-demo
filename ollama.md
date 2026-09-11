@@ -122,30 +122,41 @@ No order found with ID ORD-1099.
 
 Для перевірки знайденого замовлення використай `ORD-1042`.
 
-## 5. Налаштувати DeepEval на локальну модель
+## 5. Налаштувати вибір judge-моделі DeepEval
 
-Створи у корені проєкту файл `local_models.py`:
+У проєкті вже є файл `local_models.py`. Він централізовано створює judge-модель
+для всіх тестів. За замовчуванням використовується локальна `OllamaModel`,
+тому ключі OpenAI та Anthropic не потрібні.
 
-```python
-from deepeval.models import OllamaModel
+У `.env` можна залишити такі налаштування:
 
-judge_model = OllamaModel(
-    model="qwen2.5:3b",
-    base_url="http://localhost:11434",
-    temperature=0,
-)
+```env
+DEEPEVAL_JUDGE_PROVIDER=ollama
+DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-Для моделі 7b зміни назву:
+Щоб пізніше перемкнути всі DeepEval-тести на OpenAI, зміни лише налаштування:
 
-```python
-from deepeval.models import OllamaModel
+```env
+DEEPEVAL_JUDGE_PROVIDER=openai
+DEEPEVAL_JUDGE_MODEL=gpt-4o
+OPENAI_API_KEY=sk-your-key-here
+```
 
-judge_model = OllamaModel(
-    model="qwen2.5:7b",
-    base_url="http://localhost:11434",
-    temperature=0,
-)
+Після зміни `.env` повторно запусти тест. У коді тестів використовується
+спільний об'єкт `judge_model` з `local_models.py`, тому окремо редагувати кожну
+метрику не потрібно.
+
+Для зміни локальної моделі завантаж її в Ollama і вкажи її назву, наприклад:
+
+```bash
+ollama pull qwen2.5:7b
+```
+
+```env
+DEEPEVAL_JUDGE_PROVIDER=ollama
+DEEPEVAL_JUDGE_MODEL=qwen2.5:7b
 ```
 
 У тесті було:

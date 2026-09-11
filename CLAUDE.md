@@ -8,11 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pip install -r requirements.txt
 ```
 
-Create a `.env` file (already gitignored) with:
+Create a `.env` file (already gitignored) with local judge defaults:
 ```
-OPENAI_API_KEY=sk-...               # agent LLM + judge LLM (GPT-4o)
+DEEPEVAL_JUDGE_PROVIDER=ollama
+DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
+OLLAMA_BASE_URL=http://localhost:11434
 CONFIDENT_API_KEY=confident_us_...  # optional: stream traces to Confident AI dashboard
 ```
+
+To use an OpenAI judge later, set `DEEPEVAL_JUDGE_PROVIDER=openai`,
+`DEEPEVAL_JUDGE_MODEL=gpt-4o`, and `OPENAI_API_KEY`.
 
 ## Running
 
@@ -44,7 +49,7 @@ python test_safety.py                 # Bias + Toxicity + PIILeakage
 |---|---|
 | `agent_plain.py` | Baseline agent with two tools (`get_order_status`, `get_refund_policy`). No eval code — the "before" state shown to students. |
 | `agent_instrumented.py` | Identical to `agent_plain.py` plus 4 lines of DeepEval instrumentation. All test files import from here. |
-| `test_agent.py` | `TaskCompletionMetric` (GPT-4o judge) + `ToolCorrectnessMetric` (rule-based name match). Goldens carry `expected_tools`. |
+| `test_agent.py` | `TaskCompletionMetric` (shared configurable judge) + `ToolCorrectnessMetric` (rule-based name match). Goldens carry `expected_tools`. |
 | `test_agent_extended.py` | `AnswerRelevancyMetric`, `PromptAlignmentMetric`, `StepEfficiencyMetric`. Goldens are input-only — no `expected_output` needed. |
 | `test_agent_correctness.py` | `GEval` (Correctness). Goldens carry `expected_output`. This is the non-RAG equivalent of expected-output evaluation. |
 
@@ -78,7 +83,7 @@ python test_safety.py                 # Bias + Toxicity + PIILeakage
 
 **Why `update_current_trace` is needed**: DeepEval 4.0.4 reads `expected_tools`, `expected_output`, and `retrieval_context` from the trace object, not directly from the golden. They must be copied in explicitly inside the `@observe`-wrapped function using `get_current_golden()`.
 
-**Cross-vendor design**: GPT-4o is used as the impartial judge for all LLM-based metrics; the agent itself also runs on GPT-4o (switched from Claude after the Anthropic key was unavailable).
+**Judge configuration**: all LLM-based evaluation metrics import the shared `judge_model` from `local_models.py`. It defaults to local Ollama (`qwen2.5:3b`) and can be switched to OpenAI (`gpt-4o`) through `.env` without changing test files. The chatbot runtime remains a separate OpenAI client.
 
 **Confident AI tracing**: adding `CONFIDENT_API_KEY` to `.env` is the only change needed to enable cloud tracing — no code changes required. DeepEval reads it automatically.
 

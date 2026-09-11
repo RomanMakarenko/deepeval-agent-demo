@@ -40,9 +40,15 @@ they stop being intimidated by component-level evaluation.
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Set your API keys
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-...
+# 2. Configure the DeepEval judge (Ollama is the default)
+# Ensure Ollama is running and qwen2.5:3b is available.
+export DEEPEVAL_JUDGE_PROVIDER=ollama
+export DEEPEVAL_JUDGE_MODEL=qwen2.5:3b
+
+# To use OpenAI later instead:
+# export DEEPEVAL_JUDGE_PROVIDER=openai
+# export DEEPEVAL_JUDGE_MODEL=gpt-4o
+# export OPENAI_API_KEY=sk-...
 
 # 3. (Optional but recommended) log in to Confident AI to see traces in a UI
 deepeval login
